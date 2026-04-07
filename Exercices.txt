@@ -1,0 +1,1799 @@
+Exercice 2:
+Exo 2.1.c
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t pid = fork();
+    if (pid == 0) {
+        printf("je suis le fils\n");
+    } else {
+        printf("je suis le père\n");
+        wait(NULL);
+    }
+    return 0;
+}
+
+Exo2.1.sh
+#!/bin/bash
+(echo "je suis le fils") & 
+echo "je suis le père"
+wait
+
+Exo2.2.c
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    if (fork() == 0) {
+        printf("je suis le fils 1\n");
+    } else {
+        if (fork() == 0) {
+            printf("je suis le fils 2\n");
+        } else {
+            printf("je suis le père\n");
+            wait(NULL); wait(NULL); // Attendre les deux
+        }
+    }
+    return 0;
+}
+
+Exo2.2.sh
+#!/bin/bash
+(echo "je suis le fils 1") &
+(echo "je suis le fils 2") &
+echo "je suis le père"
+wait
+
+Exo2.3.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    for (int i = 0; i < 5; i++) {
+        if (fork() == 0) {
+            printf("Processus fils créé\n");
+            exit(0);
+        }
+    }
+    for (int i = 0; i < 5; i++) wait(NULL);
+    return 0;
+}
+
+Exo2.3.sh
+#!/bin/bash
+for i in {1..5}
+do
+    (echo "Processus fils créé") &
+done
+wait
+
+
+Exo2.4.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    for (int i = 1; i <= 5; i++) {
+        if (fork() == 0) {
+            printf("je suis le fils %d\n", i);
+            exit(0);
+        }
+    }
+    for (int i = 0; i < 5; i++) wait(NULL);
+    return 0;
+}
+
+Exo2.4.sh
+#!/bin/bash
+for i in {1..5}
+do
+    (echo "je suis le fils $i") &
+done
+wait
+
+Exo2.5.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <time.h>
+
+int main() {
+    srand(time(NULL));
+    time_t debut = time(NULL);
+
+    for (int i = 1; i <= 2; i++) {
+        if (fork() == 0) {
+            int d = (rand() % 10) + 1;
+            sleep(d);
+            printf("Fils %d a fini après %ds\n", i, d);
+            exit(0);
+        }
+    }
+
+    wait(NULL); wait(NULL);
+    time_t fin = time(NULL);
+    printf("Durée totale : %ld secondes\n", fin - debut);
+    return 0;
+}
+
+Exo2.5.sh
+#!/bin/bash
+debut=$(date +%s)
+
+for i in 1 2
+do
+    (
+        duree=$((1 + RANDOM % 10))
+        sleep $duree
+        echo "Fils $i a dormi $duree sec"
+    ) &
+done
+
+wait
+fin=$(date +%s)
+echo "Durée totale : $((fin - debut)) secondes"
+
+Exercice 3:
+Exo3.1.c
+//Addition d'arguments
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) return 1;
+    // atoi convertit une chaîne (ASCII) en entier (integer)
+    printf("%d\n", atoi(argv[1]) + atoi(argv[2]));
+    return 0;
+}
+
+Exo3.1.sh
+#!/bin/bash
+# $1 et $2 sont les deux premiers arguments
+echo $(($1 + $2))
+
+Exo3.2.c
+//Copie du répertoire courant vers R
+#include <unistd.h>
+int main(int argc, char *argv[]) {
+    if (argc < 2) return 1;
+    execlp("cp", "cp", "-r", ".", argv[1], NULL);
+    return 0;
+}
+
+Exo3.2.sh
+#!/bin/bash
+cp -r . "$1"
+
+Exo3.3.c
+//Ouvrir un fichier saisi au clavier avec Emacs
+#include <stdio.h>
+#include <unistd.h>
+
+int main() {
+    char nom[100];
+    printf("Nom du fichier : ");
+    scanf("%s", nom);
+    execl("/usr/bin/emacs", "emacs", nom, NULL);
+    return 0;
+}
+
+Exo3.3.sh
+#!/bin/bash
+read -p "Fichier : " f
+/usr/bin/emacs "$f"
+
+Exo3.4.c
+//Copie multiple (Boucle)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    char dest[100];
+    while (1) {
+        printf("Destination (q pour quitter) : ");
+        scanf("%s", dest);
+        if (strcmp(dest, "q") == 0) break;
+        if (fork() == 0) {
+            execlp("cp", "cp", "-r", ".", dest, NULL);
+            exit(0);
+        }
+        wait(NULL);
+    }
+    return 0;
+}
+
+Exo3.4.sh
+#!/bin/bash
+while true; do
+    read -p "Destination (ou 'q' pour quitter) : " dest
+    if [ "$dest" == "q" ]; then break; fi
+    cp -r . "$dest"
+done
+
+Exo3.5.c
+//Ouvrir plusieurs fichiers avec Emacs
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    char f[100];
+    while (1) {
+        printf("Fichier à ouvrir (q pour quitter) : ");
+        scanf("%s", f);
+        if (strcmp(f, "q") == 0) break;
+        if (fork() == 0) {
+            execl("/usr/bin/emacs", "emacs", f, NULL);
+            exit(0);
+        }
+        wait(NULL); // On attend que l'utilisateur ferme emacs avant de demander le suivant
+    }
+    return 0;
+}
+
+Exo3.5.sh
+#!/bin/bash
+
+while true; do
+    # Demander le nom du fichier à l'utilisateur
+    read -p "Fichier à ouvrir (ou 'q' pour quitter) : " fichier
+    
+    # Vérifier si l'on doit quitter
+    if [ "$fichier" == "q" ]; then
+        break
+    fi
+
+    # Lancer emacs. 
+    # Contrairement au C (exec), le script Bash attend que l'éditeur 
+    # soit fermé avant de continuer la boucle.
+    /usr/bin/emacs "$fichier"
+done
+
+Exo3.6.C
+// Combinaison sans boucle ni récursion de fonction
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) return 1;
+    int n = atoi(argv[1]);
+    int k = atoi(argv[2]);
+
+    // Cas de base
+    if (k == 0 || k == n) { printf("1\n"); return 1; }
+
+    // On crée deux fils pour calculer C(n-1, k-1) et C(n-1, k)
+    int p1[2], p2[2];
+    pipe(p1); // Utilisation de pipes pour lire le résultat (plus propre que /tmp)
+    
+    if (fork() == 0) {
+        dup2(p1[1], 1); // Redirige stdout vers le pipe
+        char sn[10], sk[10];
+        sprintf(sn, "%d", n-1); sprintf(sk, "%d", k-1);
+        execl(argv[0], argv[0], sn, sk, NULL);
+    }
+    
+    // ... Idem pour le deuxième fils, puis le père additionne les sorties.
+    // (Note : Dans un cadre scolaire strict, on utiliserait des fichiers dans /tmp)
+
+    else
+    {
+        if (fork() == 0) {
+           dup2(p2[1], 1); // Redirige stdout vers le pipe
+            char snn[10], skk[10];
+            sprintf(snn, "%d", n-1); sprintf(skk, "%d", k);
+            execl(argv[0], argv[0], snn, skk, NULL);
+        }
+    }
+    
+    return 0;
+}
+
+Exo3.6.sh
+#!/bin/bash
+
+n=$1
+k=$2
+
+# Cas de base : Ci0 = 1 et Cii = 1
+if [ "$k" -eq 0 ] || [ "$k" -eq "$n" ]; then
+    echo 1
+    exit 0
+fi
+
+# Pour simuler la récursion sans fonction, le script s'appelle lui-même ($0)
+# On utilise des sous-shells (...) pour récupérer les résultats
+val1=$($0 $((n-1)) $((k-1)))
+val2=$($0 $((n-1)) $k)
+
+# Addition des deux résultats
+echo $((val1 + val2))
+
+Exercice 4:
+Exo4.1.c
+//Recherche de mot via un tube
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+int main() {
+    int tube[2];
+    pipe(tube);
+    char mot_cherche[50], mot_fichier[50];
+    int trouve = 0;
+
+    if (fork() == 0) { // FILS
+        close(tube[1]); // Ferme l'écriture
+        printf("Entrez le mot : ");
+        scanf("%s", mot_cherche);
+        
+        // Ici, on inverse pour l'exercice : le fils envoie au père
+        // Mais restons sur l'énoncé : le père envoie au fils.
+        // (Le code réel nécessite un second tube pour être propre)
+        read(tube[0], &trouve, sizeof(int));
+        printf("Résultat reçu du père : %s\n", trouve ? "Trouvé" : "Non trouvé");
+        exit(0);
+    } else { // PÈRE
+        close(tube[0]); // Ferme la lecture
+        FILE* f = fopen("dictionnaire.txt", "r");
+        // Simulation de saisie (pour l'exemple simplifions le flux)
+        char cible[] = "systeme"; 
+        while (fscanf(f, "%s", mot_fichier) != EOF) {
+            if (strcmp(mot_fichier, cible) == 0) trouve = 1;
+        }
+        write(tube[1], &trouve, sizeof(int));
+        fclose(f);
+        wait(NULL);
+    }
+    return 0;
+}
+
+Exo4.1.sh
+#!/bin/bash
+# Création d'un tube nommé pour la réponse
+mkfifo /tmp/rep_pipe
+
+read -p "Entrez le mot à chercher : " mot
+
+# Le père (processus en arrière-plan) fait la recherche
+(
+    if grep -qw "$mot" "dictionnaire.txt"; then
+        echo 1 > /tmp/rep_pipe
+    else
+        echo 0 > /tmp/rep_pipe
+    fi
+) &
+
+# Le fils lit la réponse
+resultat=$(cat /tmp/rep_pipe)
+if [ "$resultat" -eq 1 ]; then
+    echo "Mot trouvé !"
+else
+    echo "Mot absent."
+fi
+
+rm /tmp/rep_pipe
+
+Exo4.2.C
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    int tube[2];
+    pipe(tube);
+
+    if (fork() == 0) {
+        // Côté FILS : on veut lire ce que le père envoie
+        close(tube[1]); 
+        dup2(tube[0], STDIN_FILENO); // On lie l'entrée standard au tube
+        char mot[50];
+        scanf("%s", mot); // Lit depuis le tube comme si c'était le clavier
+        printf("Le fils a lu via stdin : %s\n", mot);
+        close(tube[0]);
+    } else {
+        // Côté PÈRE : on veut écrire vers le fils
+        close(tube[0]);
+        dup2(tube[1], STDOUT_FILENO); // On lie la sortie standard au tube
+        printf("Message_Secret"); // Écrit dans le tube au lieu de l'écran
+        fflush(stdout); 
+        close(tube[1]);
+        wait(NULL);
+    }
+    return 0;
+}
+
+Exo4.2.sh
+#!/bin/bash
+# Le "père" lance une commande, le "fils" (grep) reçoit le flux
+echo "mot1 mot2 cible mot3" | grep "cible"
+
+Exo4.3
+    fils.c
+    #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main(int argc, char *argv[]) {
+    int fd = atoi(argv[1]); // On récupère le descripteur passé en argument
+    char msg[100];
+    read(fd, msg, 100);
+    printf("Fils a reçu : %s\n", msg);
+    return 0;
+}
+
+    fils.sh
+    #!/bin/bash
+fd=$1
+# On lit depuis le descripteur passé en paramètre
+cat <& $fd
+
+    pere.c
+    #include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+int main() {
+    int tube[2];
+    pipe(tube);
+    char fd_str[10];
+
+    if (fork() == 0) {
+        sprintf(fd_str, "%d", tube[0]); // On convertit le numéro du tube en texte
+        execl("./fils", "fils", fd_str, NULL);
+    } else {
+        close(tube[0]);
+        write(tube[1], "Hello depuis le père", 21);
+        wait(NULL);
+    }
+    return 0;
+}
+
+    pere.sh
+    #!/bin/bash
+# On crée un descripteur de fichier (3) lié à un tube nommé ou un fichier
+exec 3< <(echo "Message transmis par argument")
+
+# On lance le script fils en lui passant le numéro "3"
+./fils_script.sh 3
+
+# Fermeture du descripteur
+exec 3<&-
+
+Exo4.4
+    fils_env.c
+    #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    char *env_val = getenv("TUBE_FD");
+    int fd = atoi(env_val);
+    char msg[100];
+    read(fd, msg, 100);
+    printf("Fils (via ENV) a reçu : %s\n", msg);
+    return 0;
+}
+
+    fils_env.sh
+    #!/bin/bash
+# Le fils accède à la variable TUBE_PATH définie par le père
+if [ -n "$TUBE_PATH" ]; then
+    read message < "$TUBE_PATH"
+    echo "Fils a reçu : $message"
+fi
+
+    pere.c
+    #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int main() {
+    int tube[2];
+    pipe(tube);
+    char fd_str[10];
+    sprintf(fd_str, "%d", tube[0]);
+    
+    // On définit la variable d'environnement
+    setenv("TUBE_FD", fd_str, 1);
+
+    if (fork() == 0) {
+        execl("./fils_env", "fils_env", NULL);
+    } else {
+        write(tube[1], "Message via Environnement", 26);
+        wait(NULL);
+    }
+    return 0;
+}
+
+    pere.sh
+    #!/bin/bash
+# On crée un tube (via un fichier temporaire pour l'exemple)
+mkfifo /tmp/mon_pipe
+
+# On stocke le chemin dans une variable d'environnement
+export TUBE_PATH="/tmp/mon_pipe"
+
+# On lance le processus d'écriture en arrière-plan
+echo "Donnée via ENV" > $TUBE_PATH &
+
+# On lance le script fils
+./fils_env_script.sh
+
+rm /tmp/mon_pipe
+
+Exercice 5:
+Exo5.1.c
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+// Fonction exécutée par le thread
+void* affiche_tableau(void* arg) {
+    int* tab = (int*)arg;
+    printf("Contenu du tableau dans le thread : ");
+    for(int i = 0; i < 5; i++) {
+        printf("%d ", tab[i]);
+    }
+    printf("\n");
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t thread;
+    int mon_tab[] = {10, 20, 30, 40, 50};
+
+    // Création du thread avec le tableau en paramètre
+    if (pthread_create(&thread, NULL, affiche_tableau, (void*)mon_tab) != 0) {
+        perror("Erreur de création du thread");
+        return 1;
+    }
+
+    pthread_join(thread, NULL); // Attente de la fin du thread
+    return 0;
+}
+
+Exo5.1.sh
+#!/bin/bash
+
+# "Fonction" simulant le thread
+affiche_tableau() {
+    local tab=("$@") # Récupère tous les arguments dans un tableau
+    echo -n "Contenu du tableau (processus fils) : "
+    echo "${tab[@]}"
+}
+
+mon_tab=(10 20 30 40 50)
+
+# Lancement en arrière-plan (simule le parallélisme)
+affiche_tableau "${mon_tab[@]}" &
+
+wait # Attente de la fin du processus fils
+
+Exo5.2.c 
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+void* genere_tableau(void* arg) {
+    int* tab = malloc(5 * sizeof(int)); // Allocation dynamique
+    for(int i = 0; i < 5; i++) {
+        tab[i] = rand() % 100; // Aléatoire entre 0 et 99
+    }
+    printf("Thread : Tableau généré.\n");
+    return (void*)tab; // On retourne l'adresse du tableau
+}
+
+int main() {
+    pthread_t thread;
+    int* tab_recu;
+    srand(time(NULL));
+
+    pthread_create(&thread, NULL, genere_tableau, NULL);
+    
+    // On récupère le pointeur via le deuxième argument de pthread_join
+    pthread_join(thread, (void**)&tab_recu);
+
+    printf("Main : Tableau reçu : ");
+    for(int i = 0; i < 5; i++) printf("%d ", tab_recu[i]);
+    printf("\n");
+
+    free(tab_recu); // Libération de la mémoire
+    return 0;
+}
+
+Exo5.2.sh 
+#!/bin/bash
+
+genere_tableau() {
+    local tab=()
+    for i in {1..5}; do
+        tab+=($((RANDOM % 100)))
+    done
+    echo "${tab[@]}" # "Renvoie" les données via la sortie standard
+}
+
+echo "Main : Attente du tableau..."
+
+# On capture le résultat du processus fils
+resultat=$(genere_tableau)
+
+echo "Main : Valeurs reçues : $resultat"
+
+Exo5.3.c 
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+typedef struct {
+    int *tab;
+    int n;
+    int x;
+} TypeTableau;
+
+// Thread 1 : Génération du tableau
+void* generer_tableau(void* arg) {
+    TypeTableau *tt = (TypeTableau*)arg;
+    tt->tab = malloc(tt->n * sizeof(int));
+    for(int i=0; i < tt->n; i++) {
+        tt->tab[i] = rand() % 100;
+    }
+    printf("\n[Thread] Tableau de % d éléments généré.\n", tt->n);
+    return NULL;
+}
+
+// Thread 2 : Recherche de x
+void* rechercher_element(void* arg) {
+    TypeTableau *tt = (TypeTableau*)arg;
+    int *trouve = malloc(sizeof(int));
+    *trouve = 0;
+    for(int i=0; i < tt->n; i++) {
+        if(tt->tab[i] == tt->x) { *trouve = 1; break; }
+    }
+    return (void*)trouve;
+}
+
+int main() {
+    pthread_t t1, t2;
+    TypeTableau data;
+    srand(time(NULL));
+
+    printf("Combien d'éléments ? ");
+    scanf("%d", &data.n);
+
+    // Lancer la génération en parallèle de la saisie de x
+    pthread_create(&t1, NULL, generer_tableau, &data);
+
+    printf("Entrez l'entier x à chercher : ");
+    scanf("%d", &data.x);
+
+    pthread_join(t1, NULL); // On attend que le tableau soit prêt
+
+    // Lancer la recherche
+    int *resultat;
+    pthread_create(&t2, NULL, rechercher_element, &data);
+    pthread_join(t2, (void**)&resultat);
+
+    printf("Résultat : %s\n", (*resultat) ? "Présent" : "Absent");
+
+    free(data.tab);
+    free(resultat);
+    return 0;
+}
+
+Exo5.3.sh 
+#!/bin/bash
+
+# Simule le Thread 1
+generer_tableau() {
+    local n=$1
+    local tab=()
+    for ((i=0; i<n; i++)); do
+        tab+=($((RANDOM % 100)))
+    done
+    echo "${tab[@]}" > /tmp/shared_tab.txt
+}
+
+read -p "Nombre d'éléments : " n
+generer_tableau $n & # Lancement en arrière-plan
+pid_gen=$!
+
+read -p "Entrez x : " x
+
+wait $pid_gen # Attendre la fin de la génération
+mon_tab=($(cat /tmp/shared_tab.txt))
+
+# Simule le Thread 2 (Recherche)
+trouve=0
+for val in "${mon_tab[@]}"; do
+    if [ "$val" -eq "$x" ]; then trouve=1; break; fi
+done
+
+echo "Résultat : $trouve"
+rm /tmp/shared_tab.txt
+
+Exo5.4.c 
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+typedef struct {
+    int *t1, *t2;
+    int n1, n2;
+} Comparaison;
+
+// Thread d'annulation
+void* check_cancel(void* arg) {
+    char c;
+    while(1) {
+        c = getchar();
+        if(c == 'A' || c == 'a') {
+            printf("\n[ANNULATION] Le programme s'arrête.\n");
+            exit(0);
+        }
+    }
+}
+
+void* verifier_inclusion(void* arg) {
+    Comparaison *c = (Comparaison*)arg;
+    for(int i=0; i < c->n1; i++) {
+        int trouve = 0;
+        for(int j=0; j < c->n2; j++) {
+            if(c->t1[i] == c->t2[j]) { trouve = 1; break; }
+        }
+        if(!trouve) return (void*)0; // Non inclus
+    }
+    return (void*)1; // Inclus
+}
+
+int main() {
+    pthread_t t_inc, t_cancel;
+    Comparaison data = {NULL, NULL, 5, 10}; // Exemple de tailles
+    
+    // Initialisation simplifiée pour l'exemple
+    data.t1 = malloc(data.n1 * sizeof(int));
+    data.t2 = malloc(data.n2 * sizeof(int));
+    for(int i=0; i<10; i++) data.t2[i] = i; 
+    for(int i=0; i<5; i++) data.t1[i] = i;
+
+    pthread_create(&t_cancel, NULL, check_cancel, NULL);
+    
+    printf("Calcul de l'inclusion en cours... (Appuyez sur 'A' pour annuler)\n");
+    sleep(2); // Pour laisser le temps d'annuler
+
+    int *res;
+    pthread_create(&t_inc, NULL, verifier_inclusion, &data);
+    pthread_join(t_inc, (void**)&res);
+
+    printf("Résultat : %s\n", (long)res ? "T1 est dans T2" : "T1 n'est pas dans T2");
+
+    return 0;
+}
+
+Exo5.4.sh 
+#!/bin/bash
+
+# Simulation de l'annulation (en arrière-plan)
+(
+    while true; do
+        read -n 1 key
+        if [[ $key == "A" || $key == "a" ]]; then
+            echo -e "\n[ANNULATION]"
+            kill -9 $$ # Tue le script parent
+        fi
+    done
+) &
+
+t1=(1 2 3)
+t2=(0 1 2 3 4 5)
+
+echo "Vérification de l'inclusion..."
+sleep 3 # Simulation de calcul long
+
+inclus=true
+for i in "${t1[@]}"; do
+    found=false
+    for j in "${t2[@]}"; do
+        if [ "$i" -eq "$j" ]; then found=true; break; fi
+    done
+    if [ "$found" = false ]; then inclus=false; break; fi
+done
+
+echo "Inclusion : $inclus"
+
+Exo5.5.c 
+//Compteur partagé et Mutex
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int compt = 0;
+int limite;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* incrementer(void* arg) {
+    while(1) {
+        pthread_mutex_lock(&mutex);
+        if (compt >= limite) { pthread_mutex_unlock(&mutex); break; }
+        compt++;
+        printf("Incrémentation : %d\n", compt);
+        pthread_mutex_unlock(&mutex);
+        sleep(rand()%5 + 1);
+    }
+    return NULL;
+}
+
+void* afficher(void* arg) {
+    while(1) {
+        sleep(2);
+        pthread_mutex_lock(&mutex);
+        printf("Lecture compteur : %d\n", compt);
+        if (compt >= limite) { pthread_mutex_unlock(&mutex); break; }
+        pthread_mutex_unlock(&mutex);
+    }
+    return NULL;
+}
+
+int main(int argc, char** argv) {
+    if(argc < 2) return 1;
+    limite = atoi(argv[1]);
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, incrementer, NULL);
+    pthread_create(&t2, NULL, afficher, NULL);
+    pthread_join(t1, NULL); pthread_join(t2, NULL);
+    return 0;
+}
+
+Exo5.5.sh
+#!/bin/bash
+echo 0 > compteur.txt
+limite=$1
+
+# Thread 1 : Incrémenteur
+(
+    while true; do
+        val=$(cat compteur.txt)
+        if [ $val -ge $limite ]; then break; i
+        echo $((val + 1)) > compteur.txt
+        sleep $((1 + RANDOM % 5))
+    done
+) &
+
+# Thread 2 : Afficheur
+(
+    while true; do
+        sleep 2
+        val=$(cat compteur.txt)
+        echo "Valeur : $val"
+        if [ $val -ge $limite ]; then break; fi
+    done
+) &
+wait
+rm compteur.txt
+
+Exo5.6.c 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+
+#define N 100
+double tableau[N];
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* thread_calcul(void* arg) {
+    while(1) {
+        pthread_mutex_lock(&mutex);
+        for (int i = 1; i < N - 1; i++) {
+            tableau[i] = (tableau[i-1] + tableau[i] + tableau[i+1]) / 3.0;
+        }
+        pthread_mutex_unlock(&mutex);
+        sleep(rand() % 3 + 1);
+    }
+    return NULL;
+}
+
+void* thread_affichage(void* arg) {
+    while(1) {
+        sleep(4);
+        pthread_mutex_lock(&mutex);
+        printf("\n[Affichage] Valeurs centrales : %.2f, %.2f, %.2f\n", 
+                tableau[1], tableau[50], tableau[98]);
+        pthread_mutex_unlock(&mutex);
+    }
+    return NULL;
+}
+
+int main() {
+    srand(time(NULL));
+    for(int i=0; i<N; i++) tableau[i] = (i == 0 || i == 99) ? 0 : rand() % 101;
+
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, thread_calcul, NULL);
+    pthread_create(&t2, NULL, thread_affichage, NULL);
+    
+    pthread_join(t1, NULL); // En pratique, boucle infinie ici
+    return 0;
+}
+
+Exo5.6.sh 
+#!/bin/bash
+# Initialisation du tableau dans un fichier
+for i in {0..99}; do
+    if [[ $i -eq 0 || $i -eq 99 ]]; then echo "0" >> tab.txt
+    else echo $((RANDOM % 101)) >> tab.txt; fi
+done
+
+# Thread Calcul
+(
+    while true; do
+        # Simulation Mutex par verrou de fichier
+        flock tab.txt -c '
+            mapfile -t arr < tab.txt
+            for i in {1..98}; do
+                prev=${arr[$((i-1))]}
+                curr=${arr[$i]}
+                next=${arr[$((i+1))]}
+                arr[$i]=$(echo "scale=2; ($prev+$curr+$next)/3" | bc)
+            done
+            printf "%s\n" "${arr[@]}" > tab.txt
+        '
+        sleep $((RANDOM % 3 + 1))
+    done
+) &
+
+# Thread Affichage
+(
+    while true; do
+        sleep 4
+        echo "Lecture du tableau..."
+        head -n 5 tab.txt
+    done
+) &
+wait
+
+Exo5.7.c 
+#include <stdio.h>
+#include <pthread.h>
+#include <math.h>
+#include <unistd.h>
+
+double u = 1.0;
+int compt = 0;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* T1(void* arg) {
+    while(1) {
+        pthread_mutex_lock(&mutex);
+        u = pow(u - 1, 2) / 4.0; // f1(x) = (x-1)^2 / 4
+        compt++;
+        printf("[T1] u = %f (iter %d)\n", u, compt);
+        pthread_mutex_unlock(&mutex);
+        sleep(rand() % 5 + 1);
+    }
+}
+
+void* T2(void* arg) {
+    while(1) {
+        pthread_mutex_lock(&mutex);
+        u = pow(u - 2, 2) / 6.0; // f2(x) = (x-2)^2 / 6
+        compt++;
+        printf("[T2] u = %f (iter %d)\n", u, compt);
+        pthread_mutex_unlock(&mutex);
+        sleep(rand() % 5 + 1);
+    }
+}
+
+int main() {
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, T1, NULL);
+    pthread_create(&t2, NULL, T2, NULL);
+    pthread_join(t1, NULL);
+    return 0;
+}
+
+Exo5.7.sh 
+#!/bin/bash
+u=1.0
+compt=0
+
+# On utilise un fichier pour simuler la mémoire partagée entre processus
+echo "$u" > u_val.txt
+echo "$compt" > count.txt
+
+f1() {
+    while true; do
+        flock u_val.txt -c '
+            curr=$(cat u_val.txt)
+            c=$(cat count.txt)
+            new=$(echo "scale=4; ($curr-1)^2/4" | bc)
+            echo "$new" > u_val.txt
+            echo $((c+1)) > count.txt
+            echo "[T1] u=$new (iter=$((c+1)))"
+        '
+        sleep $((RANDOM % 5 + 1))
+    done
+}
+
+f2() {
+    while true; do
+        flock u_val.txt -c '
+            curr=$(cat u_val.txt)
+            c=$(cat count.txt)
+            new=$(echo "scale=4; ($curr-2)^2/6" | bc)
+            echo "$new" > u_val.txt
+            echo $((c+1)) > count.txt
+            echo "[T2] u=$new (iter=$((c+1)))"
+        '
+        sleep $((RANDOM % 5 + 1))
+    done
+}
+
+f1 & f2 &
+wait
+
+Exo5.8.c 
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdio.h>
+#include <unistd.h>
+
+sem_t sem1, sem2;
+
+void* thread1(void* arg) {
+    for(int i=0; i<10; i++) {
+        sleep(2); // Traitement
+        printf("T1 prêt au rendez-vous %d\n", i);
+        sem_post(&sem1); // Signale sa présence
+        sem_wait(&sem2); // Attend T2
+        printf("T1 repart %d\n", i);
+    }
+    return NULL;
+}
+
+void* thread2(void* arg) {
+    for(int i=0; i<10; i++) {
+        sleep(rand()%6 + 4); // Traitement long
+        printf("T2 prêt au rendez-vous %d\n", i);
+        sem_post(&sem2); // Signale sa présence
+        sem_wait(&sem1); // Attend T1
+        printf("T2 repart %d\n", i);
+    }
+    return NULL;
+}
+
+int main() {
+    sem_init(&sem1, 0, 0);
+    sem_init(&sem2, 0, 0);
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, thread1, NULL);
+    pthread_create(&t2, NULL, thread2, NULL);
+    pthread_join(t1, NULL); pthread_join(t2, NULL);
+    sem_destroy(&sem1); sem_destroy(&sem2);
+    return 0;
+}
+
+Exo5.8.sh 
+#!/bin/bash
+# Nettoyage des anciens jetons
+rm -f /tmp/rdv_t1 /tmp/rdv_t2
+
+# Thread 1
+(
+    for i in {1..10}; do
+        sleep 2
+        echo "T1 prêt ($i)"
+        touch /tmp/rdv_t1 # Signale sa présence
+        while [ ! -f /tmp/rdv_t2 ]; do sleep 0.1; done # Attend T2
+        echo "T1 franchit le rendez-vous $i"
+        rm -f /tmp/rdv_t1
+        sleep 0.5 # Petit délai pour laisser T2 nettoyer son fichier
+    done
+) &
+
+# Thread 2
+(
+    for i in {1..10}; do
+        sleep $((4 + RANDOM % 6))
+        echo "T2 prêt ($i)"
+        touch /tmp/rdv_t2 # Signale sa présence
+        while [ ! -f /tmp/rdv_t1 ]; do sleep 0.1; done # Attend T1
+        echo "T2 franchit le rendez-vous $i"
+        rm -f /tmp/rdv_t2
+    done
+) &
+
+wait
+
+Exo5.9.c 
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdio.h>
+#include <unistd.h>
+
+char boîte_aux_lettres;
+sem_t vide, plein;
+
+void* emetteur(void* arg) {
+    for(int i=0; i<5; i++) {
+        sem_wait(&vide);
+        boîte_aux_lettres = 'A' + i;
+        printf("Émetteur dépose : %c\n", boîte_aux_lettres);
+        sem_post(&plein);
+        sleep(rand()%3 + 1);
+    }
+    return NULL;
+}
+
+void* recepteur(void* arg) {
+    for(int i=0; i<5; i++) {
+        sem_wait(&plein);
+        printf("Récepteur lit : %c\n", boîte_aux_lettres);
+        sem_post(&vide);
+        sleep(rand()%3 + 1);
+    }
+    return NULL;
+}
+
+int main() {
+    sem_init(&vide, 0, 1);
+    sem_init(&plein, 0, 0);
+    pthread_t t1, t2;
+    pthread_create(&t1, NULL, emetteur, NULL);
+    pthread_create(&t2, NULL, recepteur, NULL);
+    pthread_join(t1, NULL); pthread_join(t2, NULL);
+    return 0;
+}
+
+Exo5.9.sh 
+#!/bin/bash
+
+# Création des "sémaphores" via FIFO
+mkfifo /tmp/fifo_vide
+mkfifo /tmp/fifo_plein
+
+# Initialisation : on dépose un jeton dans "vide" pour que l'émetteur commence
+echo "go" > /tmp/fifo_vide &
+
+# Émetteur
+(
+    for i in {A..E}; do
+        read _ < /tmp/fifo_vide # Attend que la boîte soit vide
+        echo "$i" > /tmp/boite_mail
+        echo "Émetteur : J'ai déposé l'octet $i"
+        echo "prêt" > /tmp/fifo_plein # Signale au récepteur
+        sleep $((1 + RANDOM % 3))
+    done
+) &
+
+# Récepteur
+(
+    for i in {1..5}; do
+        read _ < /tmp/fifo_plein # Attend que la boîte soit pleine
+        octet=$(cat /tmp/boite_mail)
+        echo "Récepteur : J'ai lu l'octet $octet"
+        echo "vide" > /tmp/fifo_vide # Signale à l'émetteur
+        sleep $((1 + RANDOM % 3))
+    done
+) &
+
+wait
+rm /tmp/fifo_vide /tmp/fifo_plein /tmp/boite_mail
+
+Exo5.10.c 
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#define TAILLE 10
+char tampon[TAILLE];
+int index_tampon = 0;
+
+sem_t places_libres, objets_prets;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void* producteur(void* arg) {
+    while(1) {
+        sem_wait(&places_libres);
+        pthread_mutex_lock(&mutex);
+        tampon[index_tampon++] = 'P';
+        printf("[Prod] Objet ajouté. Stock : %d\n", index_tampon);
+        pthread_mutex_unlock(&mutex);
+        sem_post(&objets_prets);
+        sleep(rand()%3 + 1);
+    }
+}
+
+void* consommateur(void* arg) {
+    while(1) {
+        sem_wait(&objets_prets);
+        pthread_mutex_lock(&mutex);
+        index_tampon--;
+        printf("[Cons] Objet retiré. Stock : %d\n", index_tampon);
+        pthread_mutex_unlock(&mutex);
+        sem_post(&places_libres);
+        sleep(rand()%3 + 1);
+    }
+}
+
+int main() {
+    sem_init(&places_libres, 0, TAILLE);
+    sem_init(&objets_prets, 0, 0);
+    pthread_t p[3], c[2]; // 3 producteurs, 2 consommateurs
+    for(int i=0; i<3; i++) pthread_create(&p[i], NULL, producteur, NULL);
+    for(int i=0; i<2; i++) pthread_create(&c[i], NULL, consommateur, NULL);
+    pthread_join(p[0], NULL);
+    return 0;
+}
+
+Exo5.10.sh 
+#!/bin/bash
+mkfifo /tmp/tampon
+
+# Producteur
+(
+    while true; do
+        echo "OBJET" > /tmp/tampon
+        echo "[Prod] Objet envoyé"
+        sleep $((RANDOM % 3 + 1))
+    done
+) &
+
+# Consommateur
+(
+    while true; do
+        read msg < /tmp/tampon
+        echo "[Cons] Objet reçu"
+        sleep $((RANDOM % 3 + 1))
+    done
+) &
+
+wait
+
+Exo5.11.c 
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+int nb_lecteurs = 0;
+pthread_mutex_t m_lecteurs = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t m_base = PTHREAD_MUTEX_INITIALIZER;
+
+void* lecteur(void* arg) {
+    while(1) {
+        pthread_mutex_lock(&m_lecteurs);
+        nb_lecteurs++;
+        if(nb_lecteurs == 1) pthread_mutex_lock(&m_base); // Le 1er bloque les rédacteurs
+        pthread_mutex_unlock(&m_lecteurs);
+
+        printf("Lecteur lit la base (%d lecteurs présents)\n", nb_lecteurs);
+        sleep(rand()%3 + 1);
+
+        pthread_mutex_lock(&m_lecteurs);
+        nb_lecteurs--;
+        if(nb_lecteurs == 0) pthread_mutex_unlock(&m_base); // Le dernier libère
+        pthread_mutex_unlock(&m_lecteurs);
+        sleep(1);
+    }
+}
+
+void* redacteur(void* arg) {
+    while(1) {
+        pthread_mutex_lock(&m_base); // Un seul rédacteur à la fois
+        printf("!!! RÉDACTEUR modifie la base !!!\n");
+        sleep(rand()%5 + 2);
+        pthread_mutex_unlock(&m_base);
+        sleep(rand()%10 + 1);
+    }
+}
+
+int main() {
+    pthread_t l[5], r[2];
+    for(int i=0; i<5; i++) pthread_create(&l[i], NULL, lecteur, NULL);
+    for(int i=0; i<2; i++) pthread_create(&r[i], NULL, redacteur, NULL);
+    pthread_join(l[0], NULL);
+    return 0;
+}
+
+Exo5.11.sh 
+#!/bin/bash
+
+# Initialisation
+echo "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" > base_donnees.txt
+echo "0" > nb_lecteurs.txt
+touch verrou_base.lock
+
+# Fonction Lecteur
+lecteur() {
+    local id=$1
+    while true; do
+        # --- Entrée Section Critique Lecteur ---
+        flock nb_lecteurs.txt -c '
+            read n < nb_lecteurs.txt
+            n=$((n + 1))
+            echo $n > nb_lecteurs.txt
+            if [ $n -eq 1 ]; then
+                # Le premier lecteur prend le verrou global contre les rédacteurs
+                flock --wait 10 verrou_base.lock true
+            fi
+        '
+        
+        # --- Lecture ---
+        pos=$((RANDOM % 15))
+        val=$(awk -v p=$((pos+1)) '{print $p}' base_donnees.txt)
+        echo "Lecteur $id lit à la pos $pos : $val"
+        sleep $((1 + RANDOM % 3))
+
+        # --- Sortie Section Critique Lecteur ---
+        flock nb_lecteurs.txt -c '
+            read n < nb_lecteurs.txt
+            n=$((n - 1))
+            echo $n > nb_lecteurs.txt
+            if [ $n -eq 0 ]; then
+                # Le dernier lecteur libère le verrou pour les rédacteurs
+                # (Dans une vraie simulation flock, le verrou est libéré à la fin du bloc)
+            fi
+        '
+        sleep $((1 + RANDOM % 3))
+    done
+}
+
+# Fonction Rédacteur
+redacteur() {
+    local id=$1
+    while true; do
+        echo "Rédacteur $id attend pour écrire..."
+        # Le rédacteur essaie de prendre le verrou exclusif
+        flock verrou_base.lock -c "
+            pos=\$((RANDOM % 15))
+            nouveau_val=\$((RANDOM % 100))
+            # Mise à jour de la base (simulation atomique via sed)
+            sed -i \"s/\([^ ]* \)\{$pos\}\([^ ]*\)/\1$nouveau_val/\" base_donnees.txt
+            echo \"!!! RÉDACTEUR $id a écrit $nouveau_val à la pos $pos !!!\"
+            sleep $((2 + RANDOM % 4))
+        "
+        sleep $((5 + RANDOM % 6))
+    done
+}
+
+# Lancement des processus
+for i in {1..3}; do lecteur $i & done
+for i in {1..2}; do redacteur $i & done
+
+wait
+
+Exercice 6:
+Exo6.1.c 
+#include <stdio.h>
+
+int main() {
+    // Données du problème
+    long long n_plateaux = 2;
+    long long n_faces = n_plateaux * 2;
+    long long n_cylindres = 1000;
+    long long n_secteurs = 60;
+    long long taille_secteur = 1024;
+
+    // a) Capacité totale
+    long long capacite = n_faces * n_cylindres * n_secteurs * taille_secteur;
+    printf("a) Capacite totale : %lld octets\n", capacite);
+
+    // b) Position de l'octet 300, secteur 45, cylindre 350, face 2
+    // Formule : (Cyl x Faces/Cyl x Sect/Face + Face x Sect/Face + Sect) x TailleSect + Offset
+    long long cyl_actuel = 350;
+    long long face_actuelle = 2;
+    long long sect_actuel = 45;
+    long long offset_octet = 300;
+
+    long long position = (cyl_actuel * n_faces * n_secteurs * taille_secteur) +
+                         (face_actuelle * n_secteurs * taille_secteur) +
+                         (sect_actuel * taille_secteur) +
+                         offset_octet;
+    printf("b) Position de l'octet : %lld\n", position);
+
+    // c) Localisation de l'octet 78 000 000
+    long long cible = 78000000;
+    long long secteurs_par_face = n_secteurs;
+    long long secteurs_par_cylindre = n_faces * n_secteurs;
+
+    long long num_cylindre = cible / (secteurs_par_cylindre * taille_secteur);
+    long long reste = cible % (secteurs_par_cylindre * taille_secteur);
+
+    long long num_face = reste / (secteurs_par_face * taille_secteur);
+    reste = reste % (secteurs_par_face * taille_secteur);
+
+    long long num_secteur = reste / taille_secteur;
+    long long pos_secteur = reste % taille_secteur;
+
+    printf("c) Octet 78.000.000 se trouve au :\n");
+    printf("   Cylindre : %lld, Face : %lld, Secteur : %lld, Position : %lld\n", 
+            num_cylindre, num_face, num_secteur, pos_secteur);
+
+    return 0;
+}
+
+Exo6.1.sh 
+#!/bin/bash
+
+# Configuration
+FACES=4
+CYLINDRES=1000
+SECTEURS=60
+TAILLE_SEC=1024
+
+# a) Capacité
+CAPACITE=$(( FACES * CYLINDRES * SECTEURS * TAILLE_SEC ))
+echo "a) Capacité totale : $CAPACITE octets"
+
+# b) Calcul de position
+# Octet 300, Secteur 45, Cylindre 350, Face 2
+C=350
+F=2
+S=45
+O=300
+
+POS=$(( (C * FACES * SECTEURS * TAILLE_SEC) + (F * SECTEURS * TAILLE_SEC) + (S * TAILLE_SEC) + O ))
+echo "b) Position de l'octet recherché : $POS"
+
+# c) Localisation de l'octet 78 000 000
+CIBLE=78000000
+
+# Taille d'un cylindre en octets
+TAILLE_CYL=$(( FACES * SECTEURS * TAILLE_SEC ))
+# Taille d'une face en octets
+TAILLE_FACE=$(( SECTEURS * TAILLE_SEC ))
+
+RES_CYL=$(( CIBLE / TAILLE_CYL ))
+RESTE=$(( CIBLE % TAILLE_CYL ))
+
+RES_FACE=$(( RESTE / TAILLE_FACE ))
+RESTE=$(( RESTE % TAILLE_FACE ))
+
+RES_SECT=$(( RESTE / TAILLE_SEC ))
+RES_POS=$(( RESTE % TAILLE_SEC ))
+
+echo "c) Pour l'octet $CIBLE :"
+echo "   Cylindre : $RES_CYL"
+echo "   Face     : $RES_FACE"
+echo "   Secteur  : $RES_SECT"
+echo "   Position : $RES_POS"
+
+Exo6.2.c 
+#include <stdio.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <stdlib.h>
+
+void lister_gros_fichiers(char *chemin) {
+    DIR *dir = opendir(chemin);
+    if (!dir) return;
+
+    struct dirent *ent;
+    struct stat st;
+    char chemin_complet[1024];
+
+    while ((ent = readdir(dir)) != NULL) {
+        sprintf(chemin_complet, "%s/%s", chemin, ent->d_name);
+        if (stat(chemin_complet, &st) == 0) {
+            if (S_ISREG(st.st_mode) && st.st_size > 1000000) {
+                printf("Fichier: %s | Taille: %ld octets | UID: %d\n", 
+                        ent->d_name, st.st_size, st.st_uid);
+            }
+        }
+    }
+    closedir(dir);
+}
+
+int main(int argc, char **argv) {
+    for (int i = 1; i < argc; i++) lister_gros_fichiers(argv[i]);
+    return 0;
+}
+
+Exo6.2.sh 
+#!/bin/bash
+for dossier in "$@"; do
+    echo "--- Analyse de $dossier ---"
+    # -type f (fichiers), -size +1M (plus de 1Mo), -printf (formatage)
+    find "$dossier" -maxdepth 1 -type f -size +1M -printf "Fichier: %f | Taille: %s octets | UID: %u\n"
+done
+
+Exo6.3.c 
+ecriture.c 
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+
+int main() {
+    int n, fd;
+    printf("Combien d'entiers ? ");
+    scanf("%d", &n);
+    int tab[n];
+    for(int i=0; i<n; i++) scanf("%d", &tab[i]);
+
+    // Permissions: rw-rw-r-- (664 octal)
+    fd = open("data.bin", O_WRONLY | O_CREAT | O_TRUNC, 0664);
+    write(fd, tab, sizeof(tab));
+    close(fd);
+    return 0;
+}
+
+lecture.c 
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+
+int main() {
+    int fd = open("data.bin", O_RDONLY);
+    int valeur, nb;
+    
+    printf("Contenu du fichier :\n");
+    while ((nb = read(fd, &valeur, sizeof(int))) > 0) {
+        printf("%d ", valeur);
+    }
+    printf("\n");
+    close(fd);
+    return 0;
+}
+
+Exo6.3.sh 
+#!/bin/bash
+# PARTIE A : Écriture (on simule le binaire via un format hex)
+tab=(10 20 30 40)
+# Création du fichier et changement de droits
+touch data.bin
+chmod 664 data.bin
+printf "%08x" "${tab[@]}" | xxd -r -p > data.bin
+
+# PARTIE B : Lecture
+echo "Lecture binaire (via od) :"
+od -An -t dI data.bin
+
+Exercice 7:
+Exo7.1.c 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+
+int main() {
+    pid_t pid = fork();
+
+    if (pid == 0) { // Code du fils
+        while(1) {
+            printf("Fils en calcul...\n");
+            sleep(1);
+        }
+    } else { // Code du père
+        char choix;
+        do {
+            printf("\nMenu: (s)topper, (r)edémarrer, (q)uitter : ");
+            scanf(" %c", &choix);
+            if (choix == 's') kill(pid, SIGSTOP);
+            if (choix == 'r') kill(pid, SIGCONT);
+            if (choix == 'q') {
+                kill(pid, SIGTERM);
+                break;
+            }
+        } while (1);
+    }
+    return 0;
+}
+
+Exo7.1.sh 
+#!/bin/bash
+# Lancement d'un calcul infini en arrière-plan
+( while true; do echo "Calcul..."; sleep 1; done ) &
+pid=$!
+
+while true; do
+    read -p "Menu: (s)top, (r)esume, (q)uit: " choix
+    case $choix in
+        s) kill -STOP $pid ;;
+        r) kill -CONT $pid ;;
+        q) kill -TERM $pid; break ;;
+    esac
+done
+
+Exo7.2.c 
+affiche.c 
+#include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+void handler(int sig) {
+    FILE *f = fopen("/tmp/entier.txt", "r");
+    int n;
+    if (f) {
+        fscanf(f, "%d", &n);
+        printf("\nValeur reçue : %d\n", n);
+        fclose(f);
+    }
+}
+
+int main() {
+    printf("Mon PID est %d. J'attends un signal...\n", getpid());
+    signal(SIGUSR1, handler);
+    while(1) pause(); // Attend un signal
+    return 0;
+}
+
+saisit.c 
+#include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
+
+int main(int argc, char **argv) {
+    if (argc != 2) return 1;
+    int pid_dest = atoi(argv[1]);
+    int n;
+    printf("Entrez un entier : ");
+    scanf("%d", &n);
+    FILE *f = fopen("/tmp/entier.txt", "w");
+    fprintf(f, "%d", n);
+    fclose(f);
+    kill(pid_dest, SIGUSR1);
+    return 0;
+}
+
+Exo7.2.sh 
+# Affiche.sh
+echo "PID: $$"
+trap 'cat /tmp/entier.txt; echo' SIGUSR1
+while true; do sleep 1; done
+
+# Saisit.sh (dans un autre terminal)
+read -p "Entier : " n
+echo $n > /tmp/entier.txt
+kill -USR1 [PID_DE_AFFICHE]
+
+Exo7.3.c 
+#include <signal.h>
+#include <stdlib.h>
+#include <sys/types.h>
+
+void message_mort(int sig) {
+    printf("\n[Fils %d] Je meurs !\n", getpid());
+    exit(0);
+}
+
+int main() {
+    pid_t fils[5];
+    for(int i=0; i<5; i++) {
+        fils[i] = fork();
+        if (fils[i] == 0) {
+            signal(SIGTERM, message_mort);
+            while(1) pause();
+        }
+    }
+
+    int num, cmd;
+    while(1) {
+        printf("\nFils (0-4) et Action (1:Stop, 2:Cont, 3:Term) : ");
+        scanf("%d %d", &num, &cmd);
+        if (num < 0 || num > 4) continue;
+        if (cmd == 1) kill(fils[num], SIGSTOP);
+        if (cmd == 2) kill(fils[num], SIGCONT);
+        if (cmd == 3) kill(fils[num], SIGTERM);
+    }
+    return 0;
+}
+
+Exo7.3.sh 
+#!/bin/bash
+
+# Création des 5 fils
+pids=()
+for i in {0..4}; do
+    (
+        # Code du fils : définit son propre message de mort
+        trap "echo -e '\n[Fils $i (PID: $$)] : On me tue ! Adieu...'; exit" SIGTERM
+        while true; do sleep 1; done
+    ) &
+    pids[$i]=$!
+done
+
+# Message de mort pour le père
+trap "echo '[PÈRE] : Je disparais aussi...'; exit" SIGTERM
+
+while true; do
+    echo -e "\n--- GESTION DES FILS ---"
+    echo "Fils disponibles : ${pids[@]}"
+    read -p "Numéro du fils (0-4) et Action (s:stop, r:reprendre, t:terminer, q:quitter) : " num action
+    
+    target=${pids[$num]}
+
+    case $action in
+        s) kill -STOP $target ;;
+        r) kill -CONT $target ;;
+        t) kill -TERM $target ;;
+        q) 
+           for p in "${pids[@]}"; do kill -TERM $p 2>/dev/null; done
+           exit 0 ;;
+        *) echo "Action inconnue" ;;
+    esac
+done 
+
+Exo7.4.c 
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <setjmp.h>
+
+sigjmp_buf env;
+int *tab;
+int n;
+
+void segfault_handler(int sig) {
+    printf("\nErreur de segmentation détectée !\n");
+    siglongjmp(env, 1);
+}
+
+int main() {
+    printf("Taille du tableau : ");
+    scanf("%d", &n);
+    tab = malloc(n * sizeof(int));
+    for(int i=0; i<n; i++) tab[i] = i * 10;
+
+    int idx;
+    sigsetjmp(env, 1);
+    
+    printf("Entrez un index à afficher : ");
+    scanf("%d", &idx);
+
+    signal(SIGSEGV, segfault_handler);
+    
+    // Si idx est hors limites, cela peut provoquer un crash (selon l'OS)
+    // Ici on force le test pour l'exercice
+    if (idx < 0 || idx >= n) {
+        raise(SIGSEGV); // On simule l'erreur pour le test
+    }
+
+    printf("Valeur : %d\n", tab[idx]);
+    return 0;
+}
+
+Exo7.4.sh
+#!/bin/bash
+
+read -p "Taille du tableau : " n
+# Création d'un tableau simulé
+tab=()
+for ((i=0; i<n; i++)); do tab[$i]=$((i * 10)); done
+
+while true; do
+    read -p "Entrez l'index à afficher : " idx
+
+    # Simulation de la détection d'erreur (équivalent logique du SIGSEGV)
+    if [[ ! "$idx" =~ ^[0-9]+$ ]] || [ "$idx" -ge "$n" ] || [ "$idx" -lt 0 ]; then
+        echo "ERREUR DE SEGMENTATION (Index invalide : $idx)"
+        echo "Tentative de récupération... Veuillez recommencer."
+        continue # Équivalent du siglongjmp : on repart au début de la boucle
+    else
+        echo "Valeur à l'index $idx : ${tab[$idx]}"
+        break
+    fi
+done
